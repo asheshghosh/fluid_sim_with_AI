@@ -1,0 +1,17 @@
+{
+  "mode": "ai",
+  "steps": 5,
+  "seconds": 0.002130999999999994,
+  "steps_per_second": 2346.3162834350137,
+  "device": "cpu",
+  "solver_config": {
+    "n": 16,
+    "length": 6.283185307179586,
+    "viscosity": 0.001,
+    "dt": 0.01,
+    "forcing_amplitude": 0.0,
+    "forcing_wavenumber": 4,
+    "dealias": true
+  },
+  "checkpoint": "runs/smoke_surrogate.pt"
+}
