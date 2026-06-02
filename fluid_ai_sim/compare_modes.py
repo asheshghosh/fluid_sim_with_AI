@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Dict
 
 import numpy as np
+import torch
 
 from .diagnostics import (
     comparison_errors,
@@ -18,7 +19,38 @@ from .plotting import plot_comparison_summary, plot_run_summary, save_diagnostic
 from .render import save_frame_strip
 from .simulate import _device, _run_ai, _run_hybrid
 from .solver import SolverConfig, SpectralNavierStokes2D, random_vorticity
-from .surrogate import load_checkpoint
+from .surrogate import detensorize, load_checkpoint, load_checkpoint_metadata, tensorize
+
+
+def _run_hybrid_strided(
+    model,
+    solver: SpectralNavierStokes2D,
+    omega0: np.ndarray,
+    model_steps: int,
+    surrogate_step_size: int,
+    mean: float,
+    std: float,
+    device,
+    correction_interval: int,
+) -> np.ndarray:
+    if correction_interval <= 0:
+        raise ValueError("correction_interval must be positive")
+    if surrogate_step_size <= 0:
+        raise ValueError("surrogate_step_size must be positive")
+
+    omega = omega0.copy()
+    frames = [omega.copy()]
+    model.eval()
+    with torch.no_grad():
+        for step in range(1, model_steps + 1):
+            if step % correction_interval == 0:
+                omega = solver.rollout(omega, steps=surrogate_step_size)[-1]
+            else:
+                current = tensorize(omega[None, :, :], mean, std, device)
+                omega = detensorize(model(current), mean, std)[0].astype(np.float64)
+            omega -= np.mean(omega)
+            frames.append(omega.copy())
+    return np.stack(frames, axis=0)
 
 
 def _save_run(
@@ -27,12 +59,14 @@ def _save_run(
     trajectory: np.ndarray,
     solver: SpectralNavierStokes2D,
     seconds: float,
+    solver_equivalent_steps: int,
+    keep_every: int,
     args: argparse.Namespace,
 ) -> tuple[list[dict], dict]:
     run_dir = out / label
     run_dir.mkdir(parents=True, exist_ok=True)
 
-    diagnostics = trajectory_diagnostics(solver, trajectory, dt=solver.config.dt)
+    diagnostics = trajectory_diagnostics(solver, trajectory, dt=solver.config.dt, keep_every=keep_every)
     diagnostic_names, diagnostic_values = diagnostics_to_table(diagnostics)
     np.savez_compressed(
         run_dir / "trajectory.npz",
@@ -46,9 +80,11 @@ def _save_run(
 
     metadata = {
         "mode": label,
-        "steps": args.steps,
+        "steps": solver_equivalent_steps,
+        "stored_frames": int(trajectory.shape[0]),
+        "surrogate_step_size": keep_every,
         "seconds": seconds,
-        "steps_per_second": args.steps / seconds if seconds > 0.0 else None,
+        "steps_per_second": solver_equivalent_steps / seconds if seconds > 0.0 else None,
         "solver_config": solver.config.to_dict(),
         "checkpoint": args.checkpoint,
     }
@@ -62,10 +98,10 @@ def _save_run(
     return diagnostics, metadata
 
 
-def _save_comparison_metrics(out: Path, reference: np.ndarray, trajectories: Dict[str, np.ndarray], dt: float) -> None:
+def _save_comparison_metrics(out: Path, reference: np.ndarray, trajectories: Dict[str, np.ndarray], sample_dt: float) -> None:
     arrays = {
         "step": np.arange(reference.shape[0], dtype=np.int64),
-        "time": np.arange(reference.shape[0], dtype=np.float64) * dt,
+        "time": np.arange(reference.shape[0], dtype=np.float64) * sample_dt,
     }
     summary = {}
     for label, trajectory in trajectories.items():
@@ -82,6 +118,13 @@ def _save_comparison_metrics(out: Path, reference: np.ndarray, trajectories: Dic
 def compare(args: argparse.Namespace) -> None:
     device = _device()
     model, mean, std, checkpoint_solver_config = load_checkpoint(args.checkpoint, device=device)
+    checkpoint_metadata = load_checkpoint_metadata(args.checkpoint)
+    surrogate_step_size = args.surrogate_step_size or int(checkpoint_metadata.get("surrogate_step_size", 1))
+    if surrogate_step_size <= 0:
+        raise ValueError("surrogate_step_size must be positive")
+    if args.steps % surrogate_step_size != 0:
+        raise ValueError("--steps must be divisible by the surrogate step size for aligned comparison")
+    model_steps = args.steps // surrogate_step_size
 
     base_config = {
         "n": args.n,
@@ -110,34 +153,56 @@ def compare(args: argparse.Namespace) -> None:
     timings = {}
 
     start = time.perf_counter()
-    trajectories["solver"] = solver.rollout(omega0, steps=args.steps)
+    trajectories["solver"] = solver.rollout(omega0, steps=args.steps, keep_every=surrogate_step_size)
     timings["solver"] = time.perf_counter() - start
 
     start = time.perf_counter()
-    trajectories["ai"] = _run_ai(model, omega0, args.steps, mean, std, device)
+    trajectories["ai"] = _run_ai(model, omega0, model_steps, mean, std, device)
     timings["ai"] = time.perf_counter() - start
 
     start = time.perf_counter()
-    trajectories["hybrid"] = _run_hybrid(
-        model,
-        solver,
-        omega0,
-        args.steps,
-        mean,
-        std,
-        device,
-        correction_interval=args.correction_interval,
-    )
+    if surrogate_step_size == 1:
+        trajectories["hybrid"] = _run_hybrid(
+            model,
+            solver,
+            omega0,
+            args.steps,
+            mean,
+            std,
+            device,
+            correction_interval=args.correction_interval,
+        )
+    else:
+        trajectories["hybrid"] = _run_hybrid_strided(
+            model,
+            solver,
+            omega0,
+            model_steps,
+            surrogate_step_size,
+            mean,
+            std,
+            device,
+            correction_interval=args.correction_interval,
+        )
     timings["hybrid"] = time.perf_counter() - start
 
     diagnostics_by_label = {}
     metadata_by_label = {}
     for label, trajectory in trajectories.items():
-        diagnostics, metadata = _save_run(out, label, trajectory, solver, timings[label], args)
+        diagnostics, metadata = _save_run(
+            out,
+            label,
+            trajectory,
+            solver,
+            timings[label],
+            solver_equivalent_steps=args.steps,
+            keep_every=surrogate_step_size,
+            args=args,
+        )
         diagnostics_by_label[label] = diagnostics
         metadata_by_label[label] = metadata
 
-    _save_comparison_metrics(out, trajectories["solver"], trajectories, config.dt)
+    _save_comparison_metrics(out, trajectories["solver"], trajectories, config.dt * surrogate_step_size)
     if not args.no_plots:
         plot_paths = plot_comparison_summary(
             trajectories["solver"],
@@ -145,7 +210,7 @@ def compare(args: argparse.Namespace) -> None:
             diagnostics_by_label,
             metadata_by_label,
             out / "plots",
-            dt=config.dt,
+            dt=config.dt * surrogate_step_size,
             correction_interval=args.correction_interval,
         )
         print("comparison plots:")
@@ -156,6 +221,8 @@ def compare(args: argparse.Namespace) -> None:
         json.dumps(
             {
                 "steps": args.steps,
+                "model_steps": model_steps,
+                "surrogate_step_size": surrogate_step_size,
                 "device": device.type,
                 "solver_config": config.to_dict(),
                 "checkpoint": args.checkpoint,
@@ -176,6 +243,12 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--out", default="runs/comparison")
     parser.add_argument("--n", type=int, default=32)
     parser.add_argument("--steps", type=int, default=120)
+    parser.add_argument(
+        "--surrogate-step-size",
+        type=int,
+        default=None,
+        help="Solver steps represented by each AI inference; defaults to checkpoint metadata.",
+    )
     parser.add_argument("--seed", type=int, default=11)
     parser.add_argument("--amplitude", type=float, default=1.0)
     parser.add_argument("--dt", type=float, default=1.0e-2)

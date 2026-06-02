@@ -107,7 +107,10 @@ def save_checkpoint(
     mean: float,
     std: float,
     solver_config: Dict[str, float],
+    surrogate_step_size: int = 1,
 ) -> None:
+    if surrogate_step_size <= 0:
+        raise ValueError("surrogate_step_size must be positive")
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
     torch.save(
@@ -117,6 +120,7 @@ def save_checkpoint(
             "mean": mean,
             "std": std,
             "solver_config": solver_config,
+            "surrogate_step_size": int(surrogate_step_size),
         },
         path,
     )
@@ -131,6 +135,17 @@ def load_checkpoint(path: str | Path, device: torch.device | None = None) -> Tup
     model.to(device)
     model.eval()
     return model, float(checkpoint["mean"]), float(checkpoint["std"]), dict(checkpoint.get("solver_config", {}))
+
+
+def load_checkpoint_metadata(path: str | Path) -> dict:
+    checkpoint = torch.load(Path(path), map_location=torch.device("cpu"))
+    return {
+        "solver_config": dict(checkpoint.get("solver_config", {})),
+        "surrogate_config": dict(checkpoint.get("surrogate_config", {})),
+        "surrogate_step_size": int(checkpoint.get("surrogate_step_size", 1)),
+        "mean": float(checkpoint["mean"]),
+        "std": float(checkpoint["std"]),
+    }
 
 
 @torch.no_grad()
