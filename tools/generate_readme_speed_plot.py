@@ -33,6 +33,18 @@ BENCHMARKS = [
         "ai": 461.83,
         "hybrid": 486.13,
     },
+    {
+        "grid": "256x256",
+        "solver": 186.68,
+        "ai": 98.39,
+        "hybrid": 86.45,
+    },
+    {
+        "grid": "512x512",
+        "solver": 35.91,
+        "ai": 24.53,
+        "hybrid": 25.73,
+    },
 ]
 
 
@@ -45,7 +57,7 @@ def make_plot(out: Path) -> None:
     x = np.arange(len(labels), dtype=np.float64)
     width = 0.24
 
-    fig, axis = plt.subplots(figsize=(8.8, 4.8))
+    fig, axis = plt.subplots(figsize=(10.2, 5.2))
     fig.patch.set_facecolor("white")
     axis.set_facecolor("white")
 
@@ -59,7 +71,7 @@ def make_plot(out: Path) -> None:
         for bar in group:
             height = bar.get_height()
             axis.annotate(
-                f"{height:,.0f}",
+                f"{height:,.1f}" if height < 100.0 else f"{height:,.0f}",
                 xy=(bar.get_x() + bar.get_width() / 2.0, height),
                 xytext=(0, 5),
                 textcoords="offset points",
@@ -70,12 +82,13 @@ def make_plot(out: Path) -> None:
             )
 
     axis.set_title("Simulation Throughput: Exact Solver vs AI Rollout", fontsize=15, pad=14)
-    axis.set_ylabel("Steps per second (higher is better)")
+    axis.set_ylabel("Steps per second, log scale (higher is better)")
     axis.set_xlabel("Grid resolution")
     axis.set_xticks(x)
     axis.set_xticklabels(labels)
-    axis.set_ylim(0.0, max(solver) * 1.18)
-    axis.grid(True, axis="y", alpha=0.25)
+    axis.set_yscale("log")
+    axis.set_ylim(10.0, max(solver) * 1.7)
+    axis.grid(True, axis="y", which="both", alpha=0.25)
     axis.spines["top"].set_visible(False)
     axis.spines["right"].set_visible(False)
     axis.legend(loc="upper right", frameon=False)
