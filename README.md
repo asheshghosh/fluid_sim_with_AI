@@ -80,6 +80,16 @@ the exact spectral solver is still faster than the tiny CNN surrogate at these
 grid sizes; the plot makes that tradeoff visible instead of assuming an AI
 speedup.
 
+## AI Acceleration Experiment
+
+![Stride-8 AI acceleration benchmark](docs/ai_acceleration_stride8.svg)
+
+This branch includes an experimental strided surrogate. Instead of predicting
+one solver step per model call, the accelerated checkpoint predicts every 8th
+solver step. Throughput is reported as solver-equivalent steps/sec so the solver,
+AI, and hybrid modes are comparable. This makes the AI path faster in this run,
+but the current smoke-trained model is still too inaccurate for production use.
+
 ## Architecture
 
 The simulator is deliberately split into three layers:
