@@ -9,10 +9,10 @@ This is a starter project for an AI-enabled fluid dynamics simulator. It combine
 The first target is periodic 2D flow:
 
 
-$ d \omega / dt + u * d \omega / dx + v * d \omega / dy = \nu * \laplacian(\omega) + $\text{forcing}$
+$ \frac{d\omega}{dt} + u *  \frac{d\omega}{dx} + v *  \frac{d\omega}{dy} = \nu * \nabla(\omega) + $\text{forcing}$\\
 $u = \frac{d \psi}{dy}$\\
-$v = -d \psi / dx$
-$\laplacian(\psi) = -\omega$
+$v = -\frac{d \psi}{dx}$ \\
+$\nabla(\psi) = -\omega$
 
 
 This formulation avoids a separate pressure solve and keeps the velocity field divergence-free.
