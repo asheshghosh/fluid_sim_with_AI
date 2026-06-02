@@ -70,6 +70,16 @@ The comparison writes separate `solver`, `ai`, and `hybrid` run folders plus:
 - `plots/final_vorticity.png`: final vorticity side-by-side.
 - `plots/speed_comparison.png`: solver, AI, and hybrid throughput.
 
+## Speed Benchmark
+
+![Throughput comparison between the exact solver, AI surrogate, and hybrid rollout](docs/ai_solver_speed.svg)
+
+The chart above is a local benchmark using `runs/smoke_surrogate.pt`, 100 rollout
+steps, and rendering disabled. Higher steps/sec is better. On this starter model,
+the exact spectral solver is still faster than the tiny CNN surrogate at these
+grid sizes; the plot makes that tradeoff visible instead of assuming an AI
+speedup.
+
 ## Architecture
 
 The simulator is deliberately split into three layers:
