@@ -1,9 +1,9 @@
 {
   "mode": "ai",
-  "steps": 5,
-  "seconds": 0.002130999999999994,
-  "steps_per_second": 2346.3162834350137,
-  "device": "cpu",
+  "steps": 50,
+  "seconds": 0.6438901250076015,
+  "steps_per_second": 77.65300019069204,
+  "device": "mps",
   "solver_config": {
     "n": 16,
     "length": 6.283185307179586,
