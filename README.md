@@ -90,6 +90,38 @@ solver step. Throughput is reported as solver-equivalent steps/sec so the solver
 AI, and hybrid modes are comparable. This makes the AI path faster in this run,
 but the current smoke-trained model is still too inaccurate for production use.
 
+### 128x128 Run
+
+![Stride-8 AI acceleration benchmark at 128x128](docs/ai_acceleration_stride8_n128.svg)
+
+To rerun the 128x128 acceleration experiment:
+
+```bash
+python -m fluid_ai_sim.train_surrogate \
+  --n 128 \
+  --trajectories 12 \
+  --steps 160 \
+  --target-stride 8 \
+  --epochs 6 \
+  --width 16 \
+  --depth 2 \
+  --kernel-size 3 \
+  --residual-scale 0.5 \
+  --checkpoint runs/accelerated_stride8_n128.pt
+
+python -m fluid_ai_sim.compare_modes \
+  --checkpoint runs/accelerated_stride8_n128.pt \
+  --use-checkpoint-config \
+  --steps 512 \
+  --correction-interval 16 \
+  --out runs/accelerated_stride8_n128_compare_ci16 \
+  --no-render
+
+python tools/generate_acceleration_experiment_plot.py \
+  --run-dir runs/accelerated_stride8_n128_compare_ci16 \
+  --out docs/ai_acceleration_stride8_n128.svg
+```
+
 ## Architecture
 
 The simulator is deliberately split into three layers:

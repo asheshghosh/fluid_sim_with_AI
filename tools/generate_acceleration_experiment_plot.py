@@ -47,6 +47,8 @@ def make_plot(run_dir: Path, out: Path) -> None:
     speedups = [speed / baseline if baseline > 0.0 else 0.0 for speed in speeds]
     step_size = int(metadata["ai"].get("surrogate_step_size", 1))
     steps = int(metadata["solver"]["steps"])
+    grid_size = int(metadata["solver"]["solver_config"]["n"])
+    checkpoint = str(metadata["solver"].get("checkpoint", "unknown checkpoint"))
 
     fig, axis = plt.subplots(figsize=(8.8, 4.8))
     fig.patch.set_facecolor("white")
@@ -99,8 +101,8 @@ def make_plot(run_dir: Path, out: Path) -> None:
             error_bits.append(f"{LABELS[mode]} final relative L2: {comparison[mode]['final_relative_l2']:.2f}")
     error_note = "; ".join(error_bits) if error_bits else "accuracy metrics unavailable"
     note = (
-        f"n=64, {steps} solver-equivalent steps, stride={step_size}; "
-        f"checkpoint=runs/accelerated_stride8.pt. {error_note}."
+        f"n={grid_size}, {steps} solver-equivalent steps, stride={step_size}; "
+        f"checkpoint={checkpoint}. {error_note}."
     )
     fig.text(0.01, 0.01, note, fontsize=8.5, color="#4b5563")
 
