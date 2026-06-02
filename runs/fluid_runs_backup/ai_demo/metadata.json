@@ -1,0 +1,17 @@
+{
+  "mode": "ai",
+  "steps": 120,
+  "seconds": 0.8056712920079008,
+  "steps_per_second": 148.9441180173306,
+  "device": "mps",
+  "solver_config": {
+    "n": 32,
+    "length": 6.283185307179586,
+    "viscosity": 0.001,
+    "dt": 0.01,
+    "forcing_amplitude": 0.0,
+    "forcing_wavenumber": 4,
+    "dealias": true
+  },
+  "checkpoint": "runs/surrogate.pt"
+}

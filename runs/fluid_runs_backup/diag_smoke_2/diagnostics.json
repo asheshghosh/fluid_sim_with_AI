@@ -1,0 +1,72 @@
+[
+  {
+    "kinetic_energy": 0.1377449292984772,
+    "enstrophy": 0.49999999999999994,
+    "palinstrophy": 2.839122793718655,
+    "vorticity_mean": 1.0408340855860843e-17,
+    "vorticity_std": 0.9999999999999999,
+    "vorticity_min": -2.617715540741376,
+    "vorticity_max": 2.372354575968254,
+    "vorticity_linf": 2.617715540741376,
+    "circulation": 4.109048268761694e-16,
+    "divergence_linf": 4.102495554179574e-33,
+    "step": 0.0,
+    "time": 0.0
+  },
+  {
+    "kinetic_energy": 0.13773674309122672,
+    "enstrophy": 0.49995833422402464,
+    "palinstrophy": 2.839310769361078,
+    "vorticity_mean": -1.0408340855860843e-17,
+    "vorticity_std": 0.9999583333559701,
+    "vorticity_min": -2.617851157779763,
+    "vorticity_max": 2.367607087388605,
+    "vorticity_linf": 2.617851157779763,
+    "circulation": -4.109048268761694e-16,
+    "divergence_linf": 4.1072058165145686e-33,
+    "step": 1.0,
+    "time": 0.01
+  },
+  {
+    "kinetic_energy": 0.137728556563949,
+    "enstrophy": 0.4999166691528436,
+    "palinstrophy": 2.8395592078285903,
+    "vorticity_mean": 1.3877787807814457e-17,
+    "vorticity_std": 0.9999166656805392,
+    "vorticity_min": -2.6179299409167536,
+    "vorticity_max": 2.362742455187842,
+    "vorticity_linf": 2.6179299409167536,
+    "circulation": 5.478731025015592e-16,
+    "divergence_linf": 7.940933880665336e-23,
+    "step": 2.0,
+    "time": 0.02
+  },
+  {
+    "kinetic_energy": 0.13772036970826676,
+    "enstrophy": 0.4998750035965197,
+    "palinstrophy": 2.8398681215319916,
+    "vorticity_mean": 5.204170427930421e-18,
+    "vorticity_std": 0.9998749957834926,
+    "vorticity_min": -2.617951556574529,
+    "vorticity_max": 2.3577617232171706,
+    "vorticity_linf": 2.617951556574529,
+    "circulation": 2.054524134380847e-16,
+    "divergence_linf": 6.352747104434095e-22,
+    "step": 3.0,
+    "time": 0.03
+  },
+  {
+    "kinetic_energy": 0.13771218251578204,
+    "enstrophy": 0.4998333363633731,
+    "palinstrophy": 2.8402375253983165,
+    "vorticity_mean": 1.734723475976807e-17,
+    "vorticity_std": 0.9998333224726741,
+    "vorticity_min": -2.6179156975521187,
+    "vorticity_max": 2.352665956270484,
+    "vorticity_linf": 2.6179156975521187,
+    "circulation": 6.848413781269489e-16,
+    "divergence_linf": 1.882337452796066e-21,
+    "step": 4.0,
+    "time": 0.04
+  }
+]

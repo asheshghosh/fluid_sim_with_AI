@@ -1,0 +1,58 @@
+[
+  {
+    "kinetic_energy": 0.09849711669731036,
+    "enstrophy": 0.5,
+    "palinstrophy": 4.568573914818323,
+    "vorticity_mean": 0.0,
+    "vorticity_std": 1.0,
+    "vorticity_min": -2.7003837439677407,
+    "vorticity_max": 3.2421793894688844,
+    "vorticity_linf": 3.2421793894688844,
+    "circulation": 0.0,
+    "divergence_linf": 1.0923754992477194e-32,
+    "step": 0.0,
+    "time": 0.0
+  },
+  {
+    "kinetic_energy": 0.10115127780978678,
+    "enstrophy": 0.5117124259092788,
+    "palinstrophy": 4.674777367326455,
+    "vorticity_mean": 0.018428261154213033,
+    "vorticity_std": 1.0114767674096077,
+    "vorticity_min": -2.73103404045105,
+    "vorticity_max": 3.2175371646881104,
+    "vorticity_linf": 3.2175371646881104,
+    "circulation": 0.72751858956818,
+    "divergence_linf": 2.0337030107255668e-19,
+    "step": 1.0,
+    "time": 0.01
+  },
+  {
+    "kinetic_energy": 0.10389995003595673,
+    "enstrophy": 0.5241769534424752,
+    "palinstrophy": 4.787147530304276,
+    "vorticity_mean": 0.036823328785146714,
+    "vorticity_std": 1.0232291773313207,
+    "vorticity_min": -2.7623074054718018,
+    "vorticity_max": 3.189143180847168,
+    "vorticity_linf": 3.189143180847168,
+    "circulation": 1.4537267513625778,
+    "divergence_linf": 3.617105400379637e-19,
+    "step": 2.0,
+    "time": 0.02
+  },
+  {
+    "kinetic_energy": 0.10674768692152779,
+    "enstrophy": 0.5374164172647924,
+    "palinstrophy": 4.906168274677919,
+    "vorticity_mean": 0.05516833363230944,
+    "vorticity_std": 1.0352725677297834,
+    "vorticity_min": -2.794219732284546,
+    "vorticity_max": 3.1571884155273438,
+    "vorticity_linf": 3.1571884155273438,
+    "circulation": 2.1779585136728294,
+    "divergence_linf": 1.1734711357627498e-18,
+    "step": 3.0,
+    "time": 0.03
+  }
+]
