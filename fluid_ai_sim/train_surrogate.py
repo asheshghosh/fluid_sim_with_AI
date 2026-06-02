@@ -27,6 +27,11 @@ def _device() -> torch.device:
 
 
 def train(args: argparse.Namespace) -> None:
+    if args.target_stride <= 0:
+        raise ValueError("--target-stride must be positive")
+    if args.steps < args.target_stride:
+        raise ValueError("--steps must be at least --target-stride")
+
     config = SolverConfig(
         n=args.n,
         viscosity=args.viscosity,
@@ -44,6 +49,7 @@ def train(args: argparse.Namespace) -> None:
             config,
             trajectories=args.trajectories,
             steps=args.steps,
+            keep_every=args.target_stride,
             seed=args.seed,
             amplitude=args.amplitude,
         )
@@ -93,9 +99,10 @@ def train(args: argparse.Namespace) -> None:
         if epoch == 1 or epoch == args.epochs or epoch % max(1, args.epochs // 5) == 0:
             print(f"epoch={epoch:03d} loss={np.mean(losses):.6f}")
 
-    save_checkpoint(args.checkpoint, model, mean, std, config.to_dict())
+    save_checkpoint(args.checkpoint, model, mean, std, config.to_dict(), surrogate_step_size=args.target_stride)
     elapsed = time.perf_counter() - start
     print(f"saved checkpoint: {args.checkpoint}")
+    print(f"surrogate predicts every {args.target_stride} solver step(s)")
     print(f"training time: {elapsed:.2f}s on {device.type}")
 
 
@@ -106,6 +113,12 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--checkpoint", default="runs/surrogate.pt", help="Output checkpoint path.")
     parser.add_argument("--n", type=int, default=32)
     parser.add_argument("--steps", type=int, default=40)
+    parser.add_argument(
+        "--target-stride",
+        type=int,
+        default=1,
+        help="Train omega_t -> omega_{t+stride}; values above 1 trade accuracy for solver-equivalent speed.",
+    )
     parser.add_argument("--trajectories", type=int, default=12)
     parser.add_argument("--seed", type=int, default=7)
     parser.add_argument("--amplitude", type=float, default=1.0)
