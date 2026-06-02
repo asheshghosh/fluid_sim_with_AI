@@ -131,11 +131,19 @@ class SpectralNavierStokes2D:
 
     def diagnostics(self, omega: Array) -> Dict[str, float]:
         u, v = self.velocity(omega)
+        omega_hat = np.fft.fft2(omega)
+        domega_dx = np.fft.ifft2(1j * self.kx * omega_hat).real
+        domega_dy = np.fft.ifft2(1j * self.ky * omega_hat).real
         return {
             "kinetic_energy": float(0.5 * np.mean(u * u + v * v)),
             "enstrophy": float(0.5 * np.mean(omega * omega)),
+            "palinstrophy": float(0.5 * np.mean(domega_dx * domega_dx + domega_dy * domega_dy)),
+            "vorticity_mean": float(np.mean(omega)),
+            "vorticity_std": float(np.std(omega)),
             "vorticity_min": float(np.min(omega)),
             "vorticity_max": float(np.max(omega)),
+            "vorticity_linf": float(np.max(np.abs(omega))),
+            "circulation": float(np.mean(omega) * self.length * self.length),
             "divergence_linf": float(np.max(np.abs(self.divergence(omega)))),
         }
 

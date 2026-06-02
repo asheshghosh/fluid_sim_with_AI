@@ -8,6 +8,8 @@ from pathlib import Path
 import numpy as np
 import torch
 
+from .diagnostics import diagnostics_to_table, trajectory_diagnostics, write_diagnostics_json
+from .plotting import plot_run_summary, save_diagnostics_csv
 from .render import save_frame_strip
 from .solver import SolverConfig, SpectralNavierStokes2D, random_vorticity
 from .surrogate import detensorize, load_checkpoint, tensorize
@@ -104,8 +106,17 @@ def simulate(args: argparse.Namespace) -> None:
 
     out = Path(args.out)
     out.mkdir(parents=True, exist_ok=True)
-    diagnostics = [solver.diagnostics(frame) for frame in trajectory]
-    np.savez_compressed(out / "trajectory.npz", vorticity=trajectory, diagnostics=diagnostics)
+    diagnostics = trajectory_diagnostics(solver, trajectory, dt=config.dt)
+    diagnostic_names, diagnostic_values = diagnostics_to_table(diagnostics)
+    np.savez_compressed(
+        out / "trajectory.npz",
+        vorticity=trajectory,
+        diagnostics=diagnostics,
+        diagnostic_names=diagnostic_names,
+        diagnostic_values=diagnostic_values,
+    )
+    write_diagnostics_json(out / "diagnostics.json", diagnostics)
+    save_diagnostics_csv(diagnostics, out / "diagnostics.csv")
 
     metadata = {
         "mode": args.mode,
@@ -119,6 +130,11 @@ def simulate(args: argparse.Namespace) -> None:
     (out / "metadata.json").write_text(json.dumps(metadata, indent=2), encoding="utf-8")
     if not args.no_render:
         save_frame_strip(trajectory, out / "frames", max_frames=args.max_frames)
+    if not args.no_plots:
+        plot_paths = plot_run_summary(solver, trajectory, diagnostics, out / "plots", max_frames=args.plot_frames)
+        print("plots:")
+        for plot_path in plot_paths:
+            print(f"  {plot_path}")
 
     print(f"mode={args.mode}")
     print(f"wrote: {out}")
@@ -142,7 +158,9 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--forcing-wavenumber", type=int, default=4)
     parser.add_argument("--correction-interval", type=int, default=10)
     parser.add_argument("--max-frames", type=int, default=24)
+    parser.add_argument("--plot-frames", type=int, default=6)
     parser.add_argument("--no-render", action="store_true")
+    parser.add_argument("--no-plots", action="store_true")
     return parser
 
 
