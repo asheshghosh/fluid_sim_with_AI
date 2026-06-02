@@ -10,7 +10,7 @@ The first target is periodic 2D flow:
 
 
 $ d \omega / dt + u * d \omega / dx + v * d \omega / dy = \nu * \laplacian(\omega) + $\text{forcing}$
-$u = d \psi / dy$
+$u = \frac{d \psi}{dy}$\\
 $v = -d \psi / dx$
 $\laplacian(\psi) = -\omega$
 
