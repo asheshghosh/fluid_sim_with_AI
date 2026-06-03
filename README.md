@@ -159,29 +159,40 @@ python -m fluid_ai_sim.compare_modes \
   --no-plots
 ```
 
-A more useful 128x128 FNO starting point:
+N=128 FNO-vs-strided-CNN comparison:
+
+![N=128 FNO vs strided CNN comparison](docs/fno_vs_stride_n128.svg)
+
+This run uses the same stride-8 rollout horizon as the existing CNN surrogate.
+The FNO is more accurate in this benchmark, while the small CNN remains faster
+per surrogate step.
 
 ```bash
 python -m fluid_ai_sim.train_surrogate \
   --model fno \
   --n 128 \
-  --trajectories 64 \
-  --steps 240 \
-  --target-stride 4 \
-  --epochs 40 \
-  --width 32 \
-  --depth 4 \
+  --trajectories 32 \
+  --steps 192 \
+  --target-stride 8 \
+  --epochs 20 \
+  --width 24 \
+  --depth 3 \
   --modes 16 \
   --residual-scale 0.35 \
-  --checkpoint runs/fno_stride4_n128.pt
+  --checkpoint runs/fno_stride8_n128.pt
 
 python -m fluid_ai_sim.compare_modes \
-  --checkpoint runs/fno_stride4_n128.pt \
+  --checkpoint runs/fno_stride8_n128.pt \
   --use-checkpoint-config \
   --steps 512 \
-  --correction-interval 4 \
-  --out runs/fno_stride4_n128_compare_ci4 \
+  --correction-interval 16 \
+  --out runs/fno_stride8_n128_compare_ci16 \
   --no-render
+
+python tools/generate_fno_vs_stride_plot.py \
+  --stride-run runs/accelerated_stride8_n128_compare_ci16 \
+  --fno-run runs/fno_stride8_n128_compare_ci16 \
+  --out docs/fno_vs_stride_n128.svg
 ```
 
 ## Architecture
