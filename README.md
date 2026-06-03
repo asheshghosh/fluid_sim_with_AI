@@ -131,6 +131,11 @@ local convolutions.
 
 Smoke-tested FNO run:
 
+![FNO rollout comparison](docs/fno_rollout_comparison.svg)
+
+This first plot is a tiny n=32 smoke test to verify the FNO path end to end.
+Use the 128x128 command below for a more meaningful acceleration/accuracy run.
+
 ```bash
 python -m fluid_ai_sim.train_surrogate \
   --model fno \
