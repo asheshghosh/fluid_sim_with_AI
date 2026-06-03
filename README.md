@@ -122,6 +122,63 @@ python tools/generate_acceleration_experiment_plot.py \
   --out docs/ai_acceleration_stride8_n128.svg
 ```
 
+### Fourier Neural Operator Rollout
+
+This branch can train either the original local CNN surrogate or a Fourier
+Neural Operator. The FNO mixes low-frequency Fourier modes across the whole
+periodic field, which is a better match for spectral fluid dynamics than only
+local convolutions.
+
+Smoke-tested FNO run:
+
+```bash
+python -m fluid_ai_sim.train_surrogate \
+  --model fno \
+  --n 32 \
+  --trajectories 4 \
+  --steps 24 \
+  --target-stride 4 \
+  --epochs 2 \
+  --width 8 \
+  --depth 2 \
+  --modes 6 \
+  --checkpoint runs/fno_smoke.pt
+
+python -m fluid_ai_sim.compare_modes \
+  --checkpoint runs/fno_smoke.pt \
+  --use-checkpoint-config \
+  --steps 32 \
+  --correction-interval 4 \
+  --out runs/fno_smoke_compare \
+  --no-render \
+  --no-plots
+```
+
+A more useful 128x128 FNO starting point:
+
+```bash
+python -m fluid_ai_sim.train_surrogate \
+  --model fno \
+  --n 128 \
+  --trajectories 64 \
+  --steps 240 \
+  --target-stride 4 \
+  --epochs 40 \
+  --width 32 \
+  --depth 4 \
+  --modes 16 \
+  --residual-scale 0.35 \
+  --checkpoint runs/fno_stride4_n128.pt
+
+python -m fluid_ai_sim.compare_modes \
+  --checkpoint runs/fno_stride4_n128.pt \
+  --use-checkpoint-config \
+  --steps 512 \
+  --correction-interval 4 \
+  --out runs/fno_stride4_n128_compare_ci4 \
+  --no-render
+```
+
 ## Architecture
 
 The simulator is deliberately split into three layers:
@@ -132,8 +189,9 @@ The simulator is deliberately split into three layers:
    - Optional Kolmogorov-style vorticity forcing.
    - Periodic domain.
 
-2. **Learning system**: `fluid_ai_sim.surrogate.FastFluidSurrogate`
+2. **Learning system**: `fluid_ai_sim.surrogate`
    - Small residual CNN with circular padding.
+   - Fourier Neural Operator option with learned spectral mixing.
    - Learns normalized `omega_t -> omega_{t+1}` transitions.
    - Saves normalization stats in the checkpoint.
 
