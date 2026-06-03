@@ -122,6 +122,45 @@ python tools/generate_acceleration_experiment_plot.py \
   --out docs/ai_acceleration_stride8_n128.svg
 ```
 
+## Accuracy
+Option 1: Train more:
+```bash
+python -m fluid_ai_sim.train_surrogate \
+  --n 128 \
+  --trajectories 64 \
+  --steps 240 \
+  --target-stride 8 \
+  --epochs 40 \
+  --width 32 \
+  --depth 4 \
+  --kernel-size 5 \
+  --residual-scale 0.35 \
+  --checkpoint runs/accelerated_stride8_n128_better.pt
+```
+Option 2: Use a smaller stride
+```bash
+python -m fluid_ai_sim.train_surrogate \
+  --n 128 \
+  --trajectories 64 \
+  --steps 240 \
+  --target-stride 4 \
+  --epochs 40 \
+  --width 32 \
+  --depth 4 \
+  --kernel-size 5 \
+  --residual-scale 0.35 \
+  --checkpoint runs/accelerated_stride4_n128.pt
+```
+Option 3: Make hybrid correct more often
+```bash
+python -m fluid_ai_sim.compare_modes \
+  --checkpoint runs/accelerated_stride4_n128.pt \
+  --use-checkpoint-config \
+  --steps 512 \
+  --correction-interval 4 \
+  --out runs/accelerated_stride4_n128_compare_ci4 \
+  --no-render
+```
 ## Architecture
 
 The simulator is deliberately split into three layers:
