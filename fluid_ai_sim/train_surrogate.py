@@ -10,8 +10,8 @@ from torch.utils.data import DataLoader, TensorDataset
 from .data import generate_trajectories, load_dataset, make_transition_pairs, save_dataset
 from .solver import SolverConfig
 from .surrogate import (
-    FastFluidSurrogate,
     SurrogateConfig,
+    build_surrogate,
     normalization_stats,
     save_checkpoint,
     tensorize,
@@ -65,12 +65,14 @@ def train(args: argparse.Namespace) -> None:
     dataset = TensorDataset(x, y)
     loader = DataLoader(dataset, batch_size=args.batch_size, shuffle=True, drop_last=False)
 
-    model = FastFluidSurrogate(
+    model = build_surrogate(
         SurrogateConfig(
+            model_type=args.model,
             width=args.width,
             depth=args.depth,
             kernel_size=args.kernel_size,
             residual_scale=args.residual_scale,
+            modes=args.modes,
         )
     ).to(device)
 
@@ -102,6 +104,7 @@ def train(args: argparse.Namespace) -> None:
     save_checkpoint(args.checkpoint, model, mean, std, config.to_dict(), surrogate_step_size=args.target_stride)
     elapsed = time.perf_counter() - start
     print(f"saved checkpoint: {args.checkpoint}")
+    print(f"model type: {args.model}")
     print(f"surrogate predicts every {args.target_stride} solver step(s)")
     print(f"training time: {elapsed:.2f}s on {device.type}")
 
@@ -126,9 +129,11 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--viscosity", type=float, default=2.0e-3)
     parser.add_argument("--forcing-amplitude", type=float, default=0.0)
     parser.add_argument("--forcing-wavenumber", type=int, default=4)
+    parser.add_argument("--model", choices=["cnn", "fno"], default="cnn")
     parser.add_argument("--width", type=int, default=48)
     parser.add_argument("--depth", type=int, default=5)
     parser.add_argument("--kernel-size", type=int, default=5)
+    parser.add_argument("--modes", type=int, default=12, help="Fourier modes per spatial axis for --model fno.")
     parser.add_argument("--residual-scale", type=float, default=0.25)
     parser.add_argument("--epochs", type=int, default=8)
     parser.add_argument("--batch-size", type=int, default=32)
