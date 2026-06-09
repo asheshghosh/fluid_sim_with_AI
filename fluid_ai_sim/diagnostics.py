@@ -84,10 +84,11 @@ def comparison_errors(reference: np.ndarray, candidate: np.ndarray) -> Dict[str,
         raise ValueError(f"expected matching trajectory shapes, got {reference.shape} and {candidate.shape}")
 
     diff = np.asarray(candidate, dtype=np.float64) - np.asarray(reference, dtype=np.float64)
-    mse = np.mean(diff * diff, axis=(1, 2))
+    reduction_axes = tuple(range(1, diff.ndim))
+    mse = np.mean(diff * diff, axis=reduction_axes)
     rmse = np.sqrt(mse)
-    max_abs = np.max(np.abs(diff), axis=(1, 2))
-    reference_norm = np.sqrt(np.mean(np.asarray(reference, dtype=np.float64) ** 2, axis=(1, 2)))
+    max_abs = np.max(np.abs(diff), axis=reduction_axes)
+    reference_norm = np.sqrt(np.mean(np.asarray(reference, dtype=np.float64) ** 2, axis=reduction_axes))
     relative_l2 = np.divide(rmse, reference_norm, out=np.zeros_like(rmse), where=reference_norm > 0.0)
     return {
         "mse": mse,

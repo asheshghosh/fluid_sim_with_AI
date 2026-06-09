@@ -3,7 +3,8 @@
 This is a starter project for an AI-enabled fluid dynamics simulator. It combines:
 
 - A real 2D incompressible Navier-Stokes solver in vorticity-streamfunction form.
-- A Torch CNN surrogate that learns fast one-step rollouts from solver-generated trajectories.
+- An explicit velocity-pressure incompressible solver with Fourier projection.
+- Torch CNN and FNO surrogates that learn fast rollouts from solver-generated trajectories.
 - CLI tools for exact simulation, dataset generation, training, AI rollout, and hybrid rollout.
 
 The first target is periodic 2D flow:
@@ -69,6 +70,50 @@ The comparison writes separate `solver`, `ai`, and `hybrid` run folders plus:
 - `plots/mode_energy_enstrophy.png`: energy/enstrophy by mode.
 - `plots/final_vorticity.png`: final vorticity side-by-side.
 - `plots/speed_comparison.png`: solver, AI, and hybrid throughput.
+
+## Incompressible Velocity Solver
+
+This branch also includes a velocity-based periodic incompressible
+Navier-Stokes solver:
+
+```text
+du/dt + (u . grad)u = -grad p + nu Laplacian u + f
+div u = 0
+```
+
+Pressure is eliminated with a Fourier-space Leray projection, so both exact
+solver steps and AI predictions are projected back to `div u = 0`.
+
+Detailed physics and AI notes:
+
+[Incompressible 2D Navier-Stokes With AI Acceleration](docs/incompressible_navier_stokes_ai.md)
+
+Train a small FNO surrogate on projected velocity fields:
+
+```bash
+python -m fluid_ai_sim.train_incompressible_surrogate \
+  --model fno \
+  --n 32 \
+  --trajectories 8 \
+  --steps 48 \
+  --target-stride 4 \
+  --epochs 4 \
+  --width 16 \
+  --depth 2 \
+  --modes 8 \
+  --checkpoint runs/incompressible_fno.pt
+```
+
+Compare exact, AI, and hybrid incompressible rollouts:
+
+```bash
+python -m fluid_ai_sim.compare_incompressible_modes \
+  --checkpoint runs/incompressible_fno.pt \
+  --use-checkpoint-config \
+  --steps 80 \
+  --correction-interval 5 \
+  --out runs/incompressible_fno_compare
+```
 
 ## Speed Benchmark
 
@@ -199,19 +244,17 @@ python tools/generate_fno_vs_stride_plot.py \
 
 The simulator is deliberately split into three layers:
 
-1. **Truth solver**: `fluid_ai_sim.solver.SpectralNavierStokes2D`
-   - FFT-based spectral derivatives.
-   - Semi-implicit viscosity.
-   - Optional Kolmogorov-style vorticity forcing.
-   - Periodic domain.
+1. **Truth solvers**:
+   - `fluid_ai_sim.solver.SpectralNavierStokes2D`: vorticity-streamfunction form with FFT derivatives.
+   - `fluid_ai_sim.incompressible.SpectralIncompressibleNavierStokes2D`: velocity-pressure form with Fourier incompressibility projection.
 
 2. **Learning system**: `fluid_ai_sim.surrogate`
    - Small residual CNN with circular padding.
    - Fourier Neural Operator option with learned spectral mixing.
-   - Learns normalized `omega_t -> omega_{t+1}` transitions.
+   - Learns normalized `omega_t -> omega_{t+1}` or `[u_t, v_t] -> [u_{t+s}, v_{t+s}]` transitions.
    - Saves normalization stats in the checkpoint.
 
-3. **Rollout modes**: `fluid_ai_sim.simulate`
+3. **Rollout modes**: `fluid_ai_sim.simulate` and `fluid_ai_sim.compare_incompressible_modes`
    - `solver`: exact solver every step.
    - `ai`: learned model every step.
    - `hybrid`: learned model with periodic exact correction.

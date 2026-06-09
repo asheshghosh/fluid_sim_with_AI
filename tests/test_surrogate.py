@@ -54,6 +54,30 @@ class SurrogateTests(unittest.TestCase):
         x = tensorize(fields, loaded_mean, loaded_std, device=torch.device("cpu"))
         self.assertEqual(tuple(loaded(x).shape), tuple(x.shape))
 
+    def test_two_channel_fno_checkpoint_round_trips(self):
+        fields = np.random.default_rng(1).normal(size=(3, 2, 16, 16)).astype(np.float64)
+        mean, std = normalization_stats(fields)
+        config = SurrogateConfig(model_type="fno", channels=2, width=8, depth=1, modes=4)
+        model = build_surrogate(config)
+
+        with tempfile.TemporaryDirectory() as tmp:
+            checkpoint = Path(tmp) / "velocity_fno.pt"
+            save_checkpoint(
+                checkpoint,
+                model,
+                mean,
+                std,
+                SolverConfig(n=16).to_dict(),
+                surrogate_step_size=2,
+            )
+            loaded, loaded_mean, loaded_std, _ = load_checkpoint(checkpoint, device=torch.device("cpu"))
+
+        self.assertEqual(loaded.config.channels, 2)
+        x = tensorize(fields, loaded_mean, loaded_std, device=torch.device("cpu"))
+        y = loaded(x)
+        self.assertEqual(tuple(y.shape), tuple(x.shape))
+        self.assertTrue(torch.all(torch.isfinite(y)))
+
 
 if __name__ == "__main__":
     unittest.main()
