@@ -13,6 +13,7 @@ from torch.nn import functional as F
 @dataclass(frozen=True)
 class SurrogateConfig:
     model_type: str = "cnn"
+    channels: int = 1
     width: int = 48
     depth: int = 5
     kernel_size: int = 5
@@ -22,6 +23,7 @@ class SurrogateConfig:
     def to_dict(self) -> Dict[str, object]:
         return {
             "model_type": self.model_type,
+            "channels": self.channels,
             "width": self.width,
             "depth": self.depth,
             "kernel_size": self.kernel_size,
@@ -33,6 +35,7 @@ class SurrogateConfig:
     def from_dict(cls, data: Dict[str, float]) -> "SurrogateConfig":
         return cls(
             model_type=str(data.get("model_type", cls.model_type)),
+            channels=int(data.get("channels", cls.channels)),
             width=int(data.get("width", cls.width)),
             depth=int(data.get("depth", cls.depth)),
             kernel_size=int(data.get("kernel_size", cls.kernel_size)),
@@ -69,19 +72,21 @@ class ConvBlock(nn.Module):
 
 
 class FastFluidSurrogate(nn.Module):
-    """Small residual CNN for fast vorticity rollouts."""
+    """Small residual CNN for fast fluid-state rollouts."""
 
     def __init__(self, config: SurrogateConfig = SurrogateConfig()):
         super().__init__()
+        if config.channels <= 0:
+            raise ValueError("channels must be positive")
         self.config = config
         self.lift = nn.Sequential(
-            PeriodicConv2d(1, config.width, config.kernel_size),
+            PeriodicConv2d(config.channels, config.width, config.kernel_size),
             nn.GELU(),
         )
         self.blocks = nn.Sequential(
             *[ConvBlock(config.width, config.kernel_size) for _ in range(config.depth)]
         )
-        self.project = PeriodicConv2d(config.width, 1, config.kernel_size)
+        self.project = PeriodicConv2d(config.width, config.channels, config.kernel_size)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         features = self.blocks(self.lift(x))
@@ -148,19 +153,21 @@ class FNOBlock(nn.Module):
 
 
 class FourierFluidSurrogate(nn.Module):
-    """Small Fourier Neural Operator for periodic vorticity rollouts."""
+    """Small Fourier Neural Operator for periodic fluid-state rollouts."""
 
     def __init__(self, config: SurrogateConfig = SurrogateConfig(model_type="fno")):
         super().__init__()
+        if config.channels <= 0:
+            raise ValueError("channels must be positive")
         if config.depth <= 0:
             raise ValueError("depth must be positive")
         self.config = config
-        self.lift = nn.Conv2d(1, config.width, kernel_size=1)
+        self.lift = nn.Conv2d(config.channels, config.width, kernel_size=1)
         self.blocks = nn.Sequential(*[FNOBlock(config.width, config.modes) for _ in range(config.depth)])
         self.project = nn.Sequential(
             nn.Conv2d(config.width, config.width, kernel_size=1),
             nn.GELU(),
-            nn.Conv2d(config.width, 1, kernel_size=1),
+            nn.Conv2d(config.width, config.channels, kernel_size=1),
         )
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
@@ -178,13 +185,21 @@ def build_surrogate(config: SurrogateConfig) -> nn.Module:
 
 
 def tensorize(fields: np.ndarray, mean: float, std: float, device: torch.device) -> torch.Tensor:
+    fields = np.asarray(fields)
     normalized = (fields.astype(np.float32) - mean) / std
-    return torch.from_numpy(normalized[:, None, :, :]).to(device)
+    if normalized.ndim == 3:
+        normalized = normalized[:, None, :, :]
+    elif normalized.ndim != 4:
+        raise ValueError("expected fields with shape [batch, n, n] or [batch, channels, n, n]")
+    return torch.from_numpy(normalized).to(device)
 
 
 def detensorize(batch: torch.Tensor, mean: float, std: float) -> np.ndarray:
-    fields = batch.detach().cpu().numpy()[:, 0]
-    return fields * std + mean
+    fields = batch.detach().cpu().numpy()
+    denormalized = fields * std + mean
+    if denormalized.shape[1] == 1:
+        return denormalized[:, 0]
+    return denormalized
 
 
 def normalization_stats(fields: np.ndarray) -> Tuple[float, float]:
