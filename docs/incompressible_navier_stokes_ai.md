@@ -19,10 +19,9 @@ apply the projection method used by many spectral incompressible solvers.
 
 The incompressible Navier-Stokes equations in two spatial dimensions are
 
-```text
-du/dt + (u . grad)u = -grad p + nu Laplacian u + f
-div u = 0
-```
+$\frac{du}{dt} + (u \cdot\nabla)u = -\nabla p + \nu \nabla^2 u + f $
+
+$\nabla u = 0$
 
 where:
 
