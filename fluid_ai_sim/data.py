@@ -5,6 +5,7 @@ from typing import Tuple
 
 import numpy as np
 
+from .active_nematic import ActiveNematicConfig, SpectralActiveNematic2D, random_active_nematic_state
 from .incompressible import (
     SpectralIncompressibleNavierStokes2D,
     VelocitySolverConfig,
@@ -74,6 +75,31 @@ def generate_velocity_trajectories(
             amplitude=amplitude,
         )
         samples.append(solver.rollout(velocity0, steps=steps, keep_every=keep_every))
+    return np.stack(samples, axis=0)
+
+
+def generate_active_nematic_trajectories(
+    config: ActiveNematicConfig,
+    trajectories: int,
+    steps: int,
+    seed: int = 0,
+    keep_every: int = 1,
+    velocity_amplitude: float = 0.15,
+) -> np.ndarray:
+    if trajectories <= 0:
+        raise ValueError("trajectories must be positive")
+    if steps <= 0:
+        raise ValueError("steps must be positive")
+
+    solver = SpectralActiveNematic2D(config)
+    samples = []
+    for idx in range(trajectories):
+        state0 = random_active_nematic_state(
+            config,
+            seed=seed + idx,
+            velocity_amplitude=velocity_amplitude,
+        )
+        samples.append(solver.rollout(state0, steps=steps, keep_every=keep_every))
     return np.stack(samples, axis=0)
 
 

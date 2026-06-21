@@ -15,6 +15,8 @@ fluid-train = "fluid_ai_sim.train_surrogate:main"
 fluid-compare = "fluid_ai_sim.compare_modes:main"
 fluid-train-incompressible = "fluid_ai_sim.train_incompressible_surrogate:main"
 fluid-compare-incompressible = "fluid_ai_sim.compare_incompressible_modes:main"
+fluid-train-active-nematic = "fluid_ai_sim.train_active_nematic_surrogate:main"
+fluid-compare-active-nematic = "fluid_ai_sim.compare_active_nematic_modes:main"
 
 [tool.setuptools.packages.find]
 include = ["fluid_ai_sim*"]

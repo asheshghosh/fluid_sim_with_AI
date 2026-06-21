@@ -4,6 +4,7 @@ This is a starter project for an AI-enabled fluid dynamics simulator. It combine
 
 - A real 2D incompressible Navier-Stokes solver in vorticity-streamfunction form.
 - An explicit velocity-pressure incompressible solver with Fourier projection.
+- A periodic Beris-Edwards-style active-nematic solver with Q-tensor state variables.
 - Torch CNN and FNO surrogates that learn fast rollouts from solver-generated trajectories.
 - CLI tools for exact simulation, dataset generation, training, AI rollout, and hybrid rollout.
 
@@ -113,6 +114,50 @@ python -m fluid_ai_sim.compare_incompressible_modes \
   --steps 80 \
   --correction-interval 5 \
   --out runs/incompressible_fno_compare
+```
+
+## Active-Nematic Hydrodynamics
+
+The active-nematic branch evolves the coupled state:
+
+```text
+[u, v, Qxx, Qxy]
+```
+
+where the Q tensor is the 2D traceless nematic order tensor. The solver uses a
+Beris-Edwards-style Q evolution equation, active stress `sigma_active = alpha Q`,
+periodic spectral derivatives, incompressible velocity projection, and
+diagnostics for `+1/2` and `-1/2` defects.
+
+Detailed notes:
+
+[Active Nematic Hydrodynamics With AI Acceleration](docs/active_nematic_hydrodynamics_ai.md)
+
+Train a small active-nematic FNO surrogate:
+
+```bash
+python -m fluid_ai_sim.train_active_nematic_surrogate \
+  --model fno \
+  --n 32 \
+  --trajectories 8 \
+  --steps 48 \
+  --target-stride 4 \
+  --epochs 6 \
+  --width 16 \
+  --depth 2 \
+  --modes 8 \
+  --checkpoint runs/active_nematic_fno.pt
+```
+
+Compare exact, AI, and hybrid active-nematic rollouts:
+
+```bash
+python -m fluid_ai_sim.compare_active_nematic_modes \
+  --checkpoint runs/active_nematic_fno.pt \
+  --use-checkpoint-config \
+  --steps 80 \
+  --correction-interval 5 \
+  --out runs/active_nematic_compare
 ```
 
 ## Speed Benchmark
@@ -247,14 +292,15 @@ The simulator is deliberately split into three layers:
 1. **Truth solvers**:
    - `fluid_ai_sim.solver.SpectralNavierStokes2D`: vorticity-streamfunction form with FFT derivatives.
    - `fluid_ai_sim.incompressible.SpectralIncompressibleNavierStokes2D`: velocity-pressure form with Fourier incompressibility projection.
+   - `fluid_ai_sim.active_nematic.SpectralActiveNematic2D`: coupled velocity/Q-tensor Beris-Edwards active nematic solver.
 
 2. **Learning system**: `fluid_ai_sim.surrogate`
    - Small residual CNN with circular padding.
    - Fourier Neural Operator option with learned spectral mixing.
-   - Learns normalized `omega_t -> omega_{t+1}` or `[u_t, v_t] -> [u_{t+s}, v_{t+s}]` transitions.
+   - Learns normalized vorticity, velocity, or active-nematic state transitions.
    - Saves normalization stats in the checkpoint.
 
-3. **Rollout modes**: `fluid_ai_sim.simulate` and `fluid_ai_sim.compare_incompressible_modes`
+3. **Rollout modes**: `fluid_ai_sim.simulate`, `fluid_ai_sim.compare_incompressible_modes`, and `fluid_ai_sim.compare_active_nematic_modes`
    - `solver`: exact solver every step.
    - `ai`: learned model every step.
    - `hybrid`: learned model with periodic exact correction.
