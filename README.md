@@ -167,6 +167,44 @@ python -m fluid_ai_sim.compare_heat_modes \
 The comparison writes temperature error curves, thermal diagnostics, final
 temperature/source panels, and solver-equivalent speed plots.
 
+### 128x128 Heat FNO Benchmark
+
+![N=128 chip heat FNO benchmark](docs/heat_fno_stride8_n128.svg)
+
+This larger run uses a source-conditioned FNO that predicts every 8 exact heat
+solver steps. For this simple periodic diffusion problem, the exact spectral
+solver is still faster than the small FNO at `128x128`, but the plot makes the
+speed/accuracy tradeoff visible and shows how hybrid correction reduces final
+temperature error.
+
+To rerun the benchmark:
+
+```bash
+python -m fluid_ai_sim.train_heat_surrogate \
+  --model fno \
+  --n 128 \
+  --trajectories 12 \
+  --steps 160 \
+  --target-stride 8 \
+  --epochs 5 \
+  --width 16 \
+  --depth 2 \
+  --modes 12 \
+  --batch-size 16 \
+  --checkpoint runs/heat_fno_stride8_n128.pt
+
+python -m fluid_ai_sim.compare_heat_modes \
+  --checkpoint runs/heat_fno_stride8_n128.pt \
+  --use-checkpoint-config \
+  --steps 512 \
+  --correction-interval 8 \
+  --out runs/heat_fno_stride8_n128_compare_ci8
+
+python tools/generate_heat_benchmark_plot.py \
+  --run-dir runs/heat_fno_stride8_n128_compare_ci8 \
+  --out docs/heat_fno_stride8_n128.svg
+```
+
 ## Active-Nematic Hydrodynamics
 
 The active-nematic branch evolves the coupled state:
