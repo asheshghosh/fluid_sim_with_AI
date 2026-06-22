@@ -5,6 +5,7 @@ from typing import Tuple
 
 import numpy as np
 
+from .active_nematic import ActiveNematicConfig, SpectralActiveNematic2D, random_active_nematic_state
 from .incompressible import (
     SpectralIncompressibleNavierStokes2D,
     VelocitySolverConfig,
@@ -80,6 +81,8 @@ def generate_velocity_trajectories(
 
 def generate_heat_trajectories(
     config: HeatSolverConfig,
+def generate_active_nematic_trajectories(
+    config: ActiveNematicConfig,
     trajectories: int,
     steps: int,
     seed: int = 0,
@@ -87,6 +90,7 @@ def generate_heat_trajectories(
     amplitude: float = 0.2,
     bias: float = 0.0,
     vary_sources: bool = True,
+    velocity_amplitude: float = 0.15,
 ) -> np.ndarray:
     if trajectories <= 0:
         raise ValueError("trajectories must be positive")
@@ -111,6 +115,15 @@ def generate_heat_trajectories(
         temperature = solver.rollout(temperature0, steps=steps, keep_every=keep_every)
         source = np.broadcast_to(solver.source, temperature.shape)
         samples.append(np.stack([temperature, source], axis=1))
+    solver = SpectralActiveNematic2D(config)
+    samples = []
+    for idx in range(trajectories):
+        state0 = random_active_nematic_state(
+            config,
+            seed=seed + idx,
+            velocity_amplitude=velocity_amplitude,
+        )
+        samples.append(solver.rollout(state0, steps=steps, keep_every=keep_every))
     return np.stack(samples, axis=0)
 
 
