@@ -11,6 +11,7 @@ from .incompressible import (
     VelocitySolverConfig,
     random_divergence_free_velocity,
 )
+from .heat import HeatSolverConfig, SpectralHeatEquation2D, random_temperature_field
 from .solver import SolverConfig, SpectralNavierStokes2D, random_vorticity
 
 
@@ -78,12 +79,17 @@ def generate_velocity_trajectories(
     return np.stack(samples, axis=0)
 
 
+def generate_heat_trajectories(
+    config: HeatSolverConfig,
 def generate_active_nematic_trajectories(
     config: ActiveNematicConfig,
     trajectories: int,
     steps: int,
     seed: int = 0,
     keep_every: int = 1,
+    amplitude: float = 0.2,
+    bias: float = 0.0,
+    vary_sources: bool = True,
     velocity_amplitude: float = 0.15,
 ) -> np.ndarray:
     if trajectories <= 0:
@@ -91,6 +97,24 @@ def generate_active_nematic_trajectories(
     if steps <= 0:
         raise ValueError("steps must be positive")
 
+    samples = []
+    for idx in range(trajectories):
+        source_seed = config.source_seed + idx if vary_sources else config.source_seed
+        trajectory_config = HeatSolverConfig(
+            **{**config.to_dict(), "source_seed": source_seed}
+        )
+        solver = SpectralHeatEquation2D(trajectory_config)
+        temperature0 = random_temperature_field(
+            config.n,
+            seed=seed + idx,
+            length=config.length,
+            low_pass=max(3, config.n // 8),
+            amplitude=amplitude,
+            bias=bias,
+        )
+        temperature = solver.rollout(temperature0, steps=steps, keep_every=keep_every)
+        source = np.broadcast_to(solver.source, temperature.shape)
+        samples.append(np.stack([temperature, source], axis=1))
     solver = SpectralActiveNematic2D(config)
     samples = []
     for idx in range(trajectories):
