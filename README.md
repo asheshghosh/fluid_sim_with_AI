@@ -4,6 +4,7 @@ This is a starter project for an AI-enabled fluid dynamics simulator. It combine
 
 - A real 2D incompressible Navier-Stokes solver in vorticity-streamfunction form.
 - An explicit velocity-pressure incompressible solver with Fourier projection.
+- A source-conditioned 2D heat equation solver for chip-like power dissipation maps.
 - Torch CNN and FNO surrogates that learn fast rollouts from solver-generated trajectories.
 - CLI tools for exact simulation, dataset generation, training, AI rollout, and hybrid rollout.
 
@@ -114,6 +115,56 @@ python -m fluid_ai_sim.compare_incompressible_modes \
   --correction-interval 5 \
   --out runs/incompressible_fno_compare
 ```
+
+## Chip Heat Equation Solver
+
+This branch starts a chip-thermal simulation path with a periodic heat equation:
+
+```text
+dT/dt = kappa Laplacian(T) - gamma T + q(x, y)
+```
+
+Here `T` is the temperature rise above ambient, `kappa` is thermal diffusivity,
+`gamma` is a cooling/sink rate, and `q(x, y)` is a fixed power-density map. The
+AI state is source-conditioned:
+
+```text
+state = [temperature, heat_source]
+```
+
+Detailed physics and AI notes:
+
+[Periodic Chip Heat Equation With AI Acceleration](docs/heat_equation_chip_ai.md)
+
+Train a small FNO surrogate on generated heat-source layouts:
+
+```bash
+python -m fluid_ai_sim.train_heat_surrogate \
+  --model fno \
+  --n 32 \
+  --trajectories 16 \
+  --steps 64 \
+  --target-stride 4 \
+  --epochs 8 \
+  --width 32 \
+  --depth 4 \
+  --modes 12 \
+  --checkpoint runs/heat_fno.pt
+```
+
+Compare exact, AI-only, and hybrid-corrected heat rollouts:
+
+```bash
+python -m fluid_ai_sim.compare_heat_modes \
+  --checkpoint runs/heat_fno.pt \
+  --use-checkpoint-config \
+  --steps 120 \
+  --correction-interval 5 \
+  --out runs/heat_fno_compare
+```
+
+The comparison writes temperature error curves, thermal diagnostics, final
+temperature/source panels, and solver-equivalent speed plots.
 
 ## Speed Benchmark
 
