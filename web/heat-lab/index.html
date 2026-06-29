@@ -1,0 +1,202 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>HeatLab AI - Accelerated Heat Equation Simulator</title>
+    <link rel="stylesheet" href="./styles.css">
+  </head>
+  <body>
+    <main class="app-shell">
+      <aside class="control-panel" aria-label="Simulation controls">
+        <header class="app-title">
+          <div>
+            <p class="eyebrow">HeatLab AI</p>
+            <h1>Accelerated chip heat simulations</h1>
+          </div>
+          <span class="status-pill" id="modeLabel">AI macro surrogate</span>
+        </header>
+
+        <section class="control-section">
+          <div class="section-heading">
+            <h2>Geometry</h2>
+            <span id="geometryLabel">Chiplet floorplan</span>
+          </div>
+          <div class="geometry-list" id="geometryList"></div>
+          <p class="tag-line" id="tags">rectangular chiplets / cooled package frame</p>
+        </section>
+
+        <section class="control-section">
+          <div class="section-heading">
+            <h2>Mode</h2>
+            <span>solver-equivalent rollouts</span>
+          </div>
+          <div class="segmented">
+            <button type="button" data-mode="exact">Exact</button>
+            <button type="button" data-mode="ai" class="is-active">AI</button>
+            <button type="button" data-mode="hybrid">Hybrid</button>
+          </div>
+          <p class="method-note" id="methodNote"></p>
+        </section>
+
+        <section class="control-section compact-grid">
+          <label>
+            <span>Grid</span>
+            <select id="grid">
+              <option value="64">64 x 64</option>
+              <option value="96" selected>96 x 96</option>
+              <option value="128">128 x 128</option>
+              <option value="160">160 x 160</option>
+            </select>
+          </label>
+          <label>
+            <span>Boundary</span>
+            <select id="boundary">
+              <option value="insulated" selected>Insulated</option>
+              <option value="periodic">Periodic</option>
+              <option value="fixed">Fixed ambient edge</option>
+            </select>
+          </label>
+        </section>
+
+        <section class="control-section sliders">
+          <label>
+            <span>AI stride <output id="strideValue">8 solver steps</output></span>
+            <input id="stride" type="range" min="1" max="24" step="1" value="8">
+          </label>
+          <label>
+            <span>Diffusivity <output id="diffusivityValue">0.0060</output></span>
+            <input id="diffusivity" type="range" min="0.001" max="0.020" step="0.001" value="0.006">
+          </label>
+          <label>
+            <span>Cooling <output id="coolingValue">0.0030</output></span>
+            <input id="cooling" type="range" min="0" max="0.018" step="0.001" value="0.003">
+          </label>
+          <label>
+            <span>Power scale <output id="sourceValue">1.00</output></span>
+            <input id="source" type="range" min="0.20" max="2.50" step="0.05" value="1.00">
+          </label>
+          <label>
+            <span>Work per frame <output id="frameStepsValue">3 macro steps</output></span>
+            <input id="frameSteps" type="range" min="1" max="16" step="1" value="3">
+          </label>
+          <label>
+            <span>Hybrid correction <output id="correctionValue">every 5</output></span>
+            <input id="correction" type="range" min="2" max="16" step="1" value="5">
+          </label>
+        </section>
+
+        <section class="control-section">
+          <label class="toggle-row">
+            <input id="compareExact" type="checkbox" checked>
+            <span>Run exact reference shadow for error curves</span>
+          </label>
+          <div class="button-grid">
+            <button type="button" id="play" class="primary">Run</button>
+            <button type="button" id="step">Step</button>
+            <button type="button" id="burst">Burst</button>
+            <button type="button" id="reset">Reset</button>
+          </div>
+          <div class="button-grid">
+            <button type="button" id="exportCsv">Export CSV</button>
+            <button type="button" id="snapshot">Save PNG</button>
+          </div>
+        </section>
+      </aside>
+
+      <section class="workspace">
+        <header class="workspace-header">
+          <div>
+            <p class="eyebrow">Live field</p>
+            <h2>Temperature rise, source maps, and surrogate error</h2>
+          </div>
+          <div class="view-switch">
+            <button type="button" data-view="temperature" class="is-active">Temperature</button>
+            <button type="button" data-view="source">Power</button>
+            <button type="button" data-view="cooling">Cooling</button>
+            <button type="button" data-view="error">Error</button>
+          </div>
+        </header>
+
+        <section class="visual-grid">
+          <div class="field-stage">
+            <canvas id="heatCanvas" width="720" height="720" aria-label="Heat simulation field"></canvas>
+            <div class="field-caption">
+              <span>Displayed field</span>
+              <strong data-readout="lastMode">ai</strong>
+            </div>
+          </div>
+          <div class="side-stack">
+            <div class="mini-stage">
+              <div class="mini-heading">
+                <span>Power density</span>
+                <strong data-readout="netPower">0</strong>
+              </div>
+              <canvas id="sourceCanvas" width="320" height="220" aria-label="Source map"></canvas>
+            </div>
+            <div class="metric-grid">
+              <article>
+                <span>Max rise</span>
+                <strong data-readout="max">0 K</strong>
+              </article>
+              <article>
+                <span>Mean rise</span>
+                <strong data-readout="mean">0 K</strong>
+              </article>
+              <article>
+                <span>Peak absolute</span>
+                <strong data-readout="absolute">300 K</strong>
+              </article>
+              <article>
+                <span>Gradient RMS</span>
+                <strong data-readout="gradient">0</strong>
+              </article>
+              <article>
+                <span>Relative error</span>
+                <strong data-readout="error">0</strong>
+              </article>
+              <article>
+                <span>Throughput</span>
+                <strong data-readout="speed">0 steps/s</strong>
+              </article>
+              <article>
+                <span>Solver steps</span>
+                <strong data-readout="steps">0</strong>
+              </article>
+              <article>
+                <span>Sim time</span>
+                <strong data-readout="time">0</strong>
+              </article>
+            </div>
+          </div>
+        </section>
+
+        <section class="analysis-row">
+          <div class="plot-panel">
+            <div class="panel-heading">
+              <h3>Diagnostics</h3>
+              <span>max rise / mean rise / relative error</span>
+            </div>
+            <canvas id="plotCanvas" width="980" height="300" aria-label="Diagnostic plots"></canvas>
+          </div>
+          <div class="research-panel">
+            <h3>Research contract</h3>
+            <p>
+              Exact mode is the trusted finite-difference heat equation. AI mode
+              is an in-browser neural-operator-style macro surrogate that advances
+              many solver-equivalent steps per call. Hybrid mode periodically
+              replaces the surrogate with exact physics.
+            </p>
+            <p>
+              Treat high error or hotspot drift as a scientific signal: it means
+              the surrogate needs training data, a smaller stride, or more frequent
+              correction for that geometry.
+            </p>
+          </div>
+        </section>
+      </section>
+    </main>
+
+    <script type="module" src="./app.js"></script>
+  </body>
+</html>
