@@ -18,9 +18,7 @@ hotspot diagnostics, and source-conditioned neural rollouts.
 
 The physical state is the temperature rise above ambient,
 
-```text
-theta(x, y, t) = T(x, y, t) - T_ambient.
-```
+$\theta(x,y,t) = T(x, y, t) - T_\text{ambient}$
 
 For the neural surrogate the state has two channels:
 

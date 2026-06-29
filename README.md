@@ -167,22 +167,43 @@ python -m fluid_ai_sim.compare_heat_modes \
 The comparison writes temperature error curves, thermal diagnostics, final
 temperature/source panels, and solver-equivalent speed plots.
 
-### HeatLab AI Web App
+### 128x128 Heat FNO Benchmark
 
-This repo also includes a browser-based research workbench for AI-accelerated
-heat-equation experiments over well-defined chip-like geometries:
+![N=128 chip heat FNO benchmark](docs/heat_fno_stride8_n128.svg)
+
+This larger run uses a source-conditioned FNO that predicts every 8 exact heat
+solver steps. For this simple periodic diffusion problem, the exact spectral
+solver is still faster than the small FNO at `128x128`, but the plot makes the
+speed/accuracy tradeoff visible and shows how hybrid correction reduces final
+temperature error.
+
+To rerun the benchmark:
 
 ```bash
-python3 -m http.server 8765 --bind 127.0.0.1 --directory web/heat-lab
+python -m fluid_ai_sim.train_heat_surrogate \
+  --model fno \
+  --n 128 \
+  --trajectories 12 \
+  --steps 160 \
+  --target-stride 8 \
+  --epochs 5 \
+  --width 16 \
+  --depth 2 \
+  --modes 12 \
+  --batch-size 16 \
+  --checkpoint runs/heat_fno_stride8_n128.pt
+
+python -m fluid_ai_sim.compare_heat_modes \
+  --checkpoint runs/heat_fno_stride8_n128.pt \
+  --use-checkpoint-config \
+  --steps 512 \
+  --correction-interval 8 \
+  --out runs/heat_fno_stride8_n128_compare_ci8
+
+python tools/generate_heat_benchmark_plot.py \
+  --run-dir runs/heat_fno_stride8_n128_compare_ci8 \
+  --out docs/heat_fno_stride8_n128.svg
 ```
-
-Then open:
-
-[http://127.0.0.1:8765](http://127.0.0.1:8765)
-
-The app runs locally in the browser and includes exact, AI macro-surrogate, and
-hybrid-correction modes, live temperature/source/error fields, thermal
-diagnostics, CSV export, and PNG snapshots.
 
 ## Active-Nematic Hydrodynamics
 
