@@ -81,8 +81,6 @@ def generate_velocity_trajectories(
 
 def generate_heat_trajectories(
     config: HeatSolverConfig,
-def generate_active_nematic_trajectories(
-    config: ActiveNematicConfig,
     trajectories: int,
     steps: int,
     seed: int = 0,
@@ -90,7 +88,6 @@ def generate_active_nematic_trajectories(
     amplitude: float = 0.2,
     bias: float = 0.0,
     vary_sources: bool = True,
-    velocity_amplitude: float = 0.15,
 ) -> np.ndarray:
     if trajectories <= 0:
         raise ValueError("trajectories must be positive")
@@ -115,6 +112,22 @@ def generate_active_nematic_trajectories(
         temperature = solver.rollout(temperature0, steps=steps, keep_every=keep_every)
         source = np.broadcast_to(solver.source, temperature.shape)
         samples.append(np.stack([temperature, source], axis=1))
+    return np.stack(samples, axis=0)
+
+
+def generate_active_nematic_trajectories(
+    config: ActiveNematicConfig,
+    trajectories: int,
+    steps: int,
+    seed: int = 0,
+    keep_every: int = 1,
+    velocity_amplitude: float = 0.15,
+) -> np.ndarray:
+    if trajectories <= 0:
+        raise ValueError("trajectories must be positive")
+    if steps <= 0:
+        raise ValueError("steps must be positive")
+
     solver = SpectralActiveNematic2D(config)
     samples = []
     for idx in range(trajectories):

@@ -167,6 +167,23 @@ python -m fluid_ai_sim.compare_heat_modes \
 The comparison writes temperature error curves, thermal diagnostics, final
 temperature/source panels, and solver-equivalent speed plots.
 
+### HeatLab AI Web App
+
+This repo also includes a browser-based research workbench for AI-accelerated
+heat-equation experiments over well-defined chip-like geometries:
+
+```bash
+python3 -m http.server 8765 --bind 127.0.0.1 --directory web/heat-lab
+```
+
+Then open:
+
+[http://127.0.0.1:8765](http://127.0.0.1:8765)
+
+The app runs locally in the browser and includes exact, AI macro-surrogate, and
+hybrid-correction modes, live temperature/source/error fields, thermal
+diagnostics, CSV export, and PNG snapshots.
+
 ## Active-Nematic Hydrodynamics
 
 The active-nematic branch evolves the coupled state:
